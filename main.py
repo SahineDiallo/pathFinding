@@ -1,6 +1,6 @@
 
 import pygame
-
+from queue import PriorityQueue
 #Colors
 WHITE = (245, 246, 247)
 RED = (237, 24, 59)
@@ -35,6 +35,9 @@ class Node():
     def make_state(self, state):
         self.color = states_dict[state]
 
+    def get_pos(self):
+        return self.row, self.col
+
     def reset(self):
         self.color = WHITE
 
@@ -42,7 +45,25 @@ class Node():
         pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.width), border_radius=1)
 
     def update_neighbors(self, grid):
-        pass
+        self.neighbors = []
+        down_neighbor = grid[self.row + 1][self.col]
+        up_neighbor  grid[self.row - 1][self.col]
+        right_neighbor = grid[self.row][self.col + 1]
+        left_neighbor = grid[self.row][self.col - 1]
+
+        if self.rows < self.total_rows - 1 and not down_neighbor.is_state('barrier'):
+            self.neighbors.append(down_neighbor)
+
+        if self.rows > 0 and not up_neighbor.is_state('barrier'):
+            self.neighbors.append(up_neighbor)
+
+        if self.rows > 0 and not left_neighbor.is_state('barrier'):
+            self.neighbors.append(left_neighbor)
+
+        if self.rows < self..total_rows -1 and not right_neighbor.is_state('barrier'):
+            self.neighbors.append(right_neighbor)
+
+
 
     def __lt__(self, other):
         return False
@@ -69,6 +90,58 @@ def draw_grid_lines(win, rows, width):
         pygame.draw.line(win, GREY, (0, i*gap), (width, i*gap))
         for i in range(rows):
             pygame.draw.line(win, GREY, (i*gap, 0), (i*gap, width))
+
+def draw_path(draw, current, came_from):
+    while current in came_from:
+        current = came_from[current]
+        current.make_state('path')
+        draw()
+
+def algorithm(draw, grid, start, end):
+    count = 0 #this will hellp check wich node is put first
+    open_set = PriorityQueue
+    came_from = {}
+    open_set.put((0, count, start))
+
+    g_score = {spot: float('inf') for row in grid for spot in row}
+    g_score[start] = 0
+
+    f_score = {spot: float('inf') for row in grid for spot in row}
+    f_score[start] = heuristic(start.get_pos(), end.get_pos())
+
+    open_set_hash = {start}
+    while not open_set.empty():
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+
+        current = open_set.get()[2]
+        open_set_hash.remove(current)
+
+        if current == end:
+            #draw the path
+            draw_path(draw, end, came_from)
+            return True
+        
+        for neighbor in current.neighbors:
+            temp_g_score = g_score[current] + 1
+            if temp_g_score < g_score[neihbor]:
+                came_from[neighbor] = current
+                g_score[neighbor] = temp_g_score
+                f_score[neighbor] = heuristic(neighbor.get_pos(), end.get_pos()) + temp_g_score
+
+                if neighbor not in open_set_hash:
+                    count += 1
+                    open_set.put((f_score[neighbor], count, neighbor))
+                    open_set_hash.add(neighbor)
+                    neighbor.make_state('open')
+
+        draw()
+        if current != start:
+            current.make_state('closed')
+
+    return False
+        
 
 
 def draw(win, grid, width, rows):
@@ -133,6 +206,16 @@ def main(win, width):
                     start = None
                 if node == end:
                     end = None
+
+            if event.type == pygame.KEYDOWN:
+                if event.key = pygame.K_SPACE and not started:
+                    for row in grid:
+                        for node in row:
+                            node.update_neighbors(grid)
+                    
+                    algorithm(lambda:draw(win, grid, width, ROWS), grid, start, end)
+
+                        
     pygame.quit()
 
 main(WIN, WIDTH)
