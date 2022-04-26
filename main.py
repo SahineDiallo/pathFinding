@@ -24,6 +24,8 @@ class Node():
     def __init__(self, row, col, width, total_rows):
         self.x = row * width
         self.y = col * width
+        self.row = row
+        self.col = col
         self.total_rows = total_rows
         self.neighbors = []
         self.width = width
@@ -46,22 +48,18 @@ class Node():
 
     def update_neighbors(self, grid):
         self.neighbors = []
-        down_neighbor = grid[self.row + 1][self.col]
-        up_neighbor  grid[self.row - 1][self.col]
-        right_neighbor = grid[self.row][self.col + 1]
-        left_neighbor = grid[self.row][self.col - 1]
 
-        if self.rows < self.total_rows - 1 and not down_neighbor.is_state('barrier'):
-            self.neighbors.append(down_neighbor)
+        if self.row < self.total_rows - 1 and not grid[self.row + 1][self.col].is_state('barrier'):
+            self.neighbors.append(grid[self.row + 1][self.col])
 
-        if self.rows > 0 and not up_neighbor.is_state('barrier'):
-            self.neighbors.append(up_neighbor)
+        if self.row > 0 and not grid[self.row - 1][self.col].is_state('barrier'):
+            self.neighbors.append(grid[self.row - 1][self.col])
 
-        if self.rows > 0 and not left_neighbor.is_state('barrier'):
-            self.neighbors.append(left_neighbor)
+        if self.col > 0 and not grid[self.row][self.col - 1].is_state('barrier'):
+            self.neighbors.append(grid[self.row][self.col - 1])
 
-        if self.rows < self..total_rows -1 and not right_neighbor.is_state('barrier'):
-            self.neighbors.append(right_neighbor)
+        if self.col < self.total_rows - 1 and not grid[self.row][self.col + 1].is_state('barrier'):
+            self.neighbors.append(grid[self.row][self.col + 1])
 
 
 
@@ -71,7 +69,7 @@ class Node():
 def heuristic(node1, node2):
     x1, y1 = node1
     x2, y2 = node2
-    return abs(x1 - x2) + abs(y1 + y2)
+    return abs(x1 - x2) + abs(y1 - y2)
 
 def make_grid(rows, width):
     gap = width // rows
@@ -91,15 +89,16 @@ def draw_grid_lines(win, rows, width):
         for i in range(rows):
             pygame.draw.line(win, GREY, (i*gap, 0), (i*gap, width))
 
-def draw_path(draw, current, came_from):
+def draw_path(draw, current, came_from, end, start):
     while current in came_from:
         current = came_from[current]
-        current.make_state('path')
+        if current != end and current != start:
+            current.make_state('path')
         draw()
 
 def algorithm(draw, grid, start, end):
     count = 0 #this will hellp check wich node is put first
-    open_set = PriorityQueue
+    open_set = PriorityQueue()
     came_from = {}
     open_set.put((0, count, start))
 
@@ -120,12 +119,12 @@ def algorithm(draw, grid, start, end):
 
         if current == end:
             #draw the path
-            draw_path(draw, end, came_from)
+            draw_path(draw, end, came_from, end, start)
             return True
         
         for neighbor in current.neighbors:
             temp_g_score = g_score[current] + 1
-            if temp_g_score < g_score[neihbor]:
+            if temp_g_score < g_score[neighbor]:
                 came_from[neighbor] = current
                 g_score[neighbor] = temp_g_score
                 f_score[neighbor] = heuristic(neighbor.get_pos(), end.get_pos()) + temp_g_score
@@ -134,7 +133,8 @@ def algorithm(draw, grid, start, end):
                     count += 1
                     open_set.put((f_score[neighbor], count, neighbor))
                     open_set_hash.add(neighbor)
-                    neighbor.make_state('open')
+                    if neighbor != end:
+                        neighbor.make_state('open')
 
         draw()
         if current != start:
@@ -189,11 +189,11 @@ def main(win, width):
                     start = node
                     node.make_state('start')
 
-                elif not end and start != node:
+                elif not end and node != start:
                     end = node
                     node.make_state('end')
 
-                elif node != start and node != end:
+                elif node != start and end != node:
                     node.make_state('barrier')
 
             if pygame.mouse.get_pressed()[2]:
@@ -208,7 +208,7 @@ def main(win, width):
                     end = None
 
             if event.type == pygame.KEYDOWN:
-                if event.key = pygame.K_SPACE and not started:
+                if event.key == pygame.K_SPACE and not started:
                     for row in grid:
                         for node in row:
                             node.update_neighbors(grid)
